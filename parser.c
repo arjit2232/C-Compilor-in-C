@@ -750,3 +750,81 @@ Node *handle_write_node(Token *current_token, Node *current){
   current = semi_node;
   return current;
 }
+
+Node *parser(Token *tokens){
+  Token *current_token = &tokens[0];
+  Node *root = malloc(sizeof(Node));
+  root = init_node(root, "PROGRAM", BEGINNING);
+
+  Node *current = root;
+
+  Node *open_curly = malloc(sizeof(Node));
+  //Node *close_curly = malloc(sizeof(Node));
+
+  curly_stack *stack = malloc(sizeof(curly_stack));
+
+  while(current_token->type != END_OF_TOKENS){
+    if(current == NULL){
+      break;
+    }
+    switch(current_token->type){
+      case KEYWORD:
+        if(strcmp(current_token->value, "EXIT") == 0){
+          current = handle_exit_syscall(root, current_token, current);
+        } else if(strcmp(current_token->value, "INT") == 0){
+          current = create_variables(current_token, current);
+        } else if(strcmp(current_token->value, "IF") == 0){
+          current = create_if_statement(current_token, current);
+        } else if(strcmp(current_token->value, "WHILE") == 0){
+          current = create_if_statement(current_token, current);
+        } else if(strcmp(current_token->value, "WRITE") == 0){
+          current = handle_write_node(current_token, current);
+        }
+        break;
+      case SEPARATOR:
+        if(strcmp(current_token->value, "{") == 0){
+          Token *temp = current_token;
+          open_curly = init_node(open_curly, temp->value, SEPARATOR);
+          current->left = open_curly;
+          current = open_curly;
+          push_curly(stack, open_curly);
+          current = peek_curly(stack);
+        }
+        if(strcmp(current_token->value, "}") == 0){
+          Node *close_curly = malloc(sizeof(Node));
+          open_curly = pop_curly(stack);
+          if(open_curly == NULL){
+            printf("ERROR: Expected Open Parenthesis!\n");
+            exit(1);
+          }
+          close_curly = init_node(close_curly, current_token->value, current_token->type);
+          current->right = close_curly;
+          current = close_curly;
+        }
+        break; 
+      case OPERATOR:
+        break;
+      case INT:
+        break;
+      case IDENTIFIER:
+        current_token--;
+        if(current_token->type == SEPARATOR && ((strcmp(current_token->value, ";") == 0) || (strcmp(current_token->value, "}") == 0) || (strcmp(current_token->value, "{") == 0))){
+          current_token++;
+          current = create_variable_reusage(current_token, current);
+        } else {
+          current_token++;
+        }
+        break;
+      case STRING:
+        break;
+      case COMP:
+        break;
+      case BEGINNING:
+        break;
+      case END_OF_TOKENS:
+        break;
+    }
+    current_token++;
+  }
+  return root;
+}
